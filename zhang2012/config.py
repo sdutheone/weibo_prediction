@@ -184,7 +184,7 @@ PREDICT_RTNUMS_CONFIGS = [
             'infilename1': '/mnt/exps/zhang2012/Sports.curves',
             'infilename2': '/mnt/exps/zhang2012/Yao Ming retire.curves',
             'simthreshold': 0.9,
-            'errthreshold': 0.05,
+            'errthreshold': 0.3,
             'm': 180,
             'outfilename': '/mnt/exps/zhang2012/Yao Ming retire.results'
             },
@@ -192,7 +192,7 @@ PREDICT_RTNUMS_CONFIGS = [
             'infilename1': '/mnt/exps/zhang2012/Disaster.curves',
             'infilename2': '/mnt/exps/zhang2012/Gansu school bus crash.curves',
             'simthreshold': 0.9,
-            'errthreshold': 0.05,
+            'errthreshold': 0.3,
             'm': 180,
             'outfilename': '/mnt/exps/zhang2012/Gansu school bus crash.results'
             },
@@ -200,7 +200,7 @@ PREDICT_RTNUMS_CONFIGS = [
             'infilename1': '/mnt/exps/zhang2012/Politics.curves',
             'infilename2': '/mnt/exps/zhang2012/the death of Kim Jongil.curves',
             'simthreshold': 0.9,
-            'errthreshold': 0.05,
+            'errthreshold': 0.3,
             'm': 180,
             'outfilename': '/mnt/exps/zhang2012/the death of Kim Jongil.results'
             },
@@ -208,7 +208,7 @@ PREDICT_RTNUMS_CONFIGS = [
             'infilename1': '/mnt/exps/zhang2012/IT.curves',
             'infilename2': '/mnt/exps/zhang2012/iphone4s release.curves',
             'simthreshold': 0.9,
-            'errthreshold': 0.05,
+            'errthreshold': 0.3,
             'm': 180,
             'outfilename': '/mnt/exps/zhang2012/iphone4s release.results'
             },
@@ -216,7 +216,7 @@ PREDICT_RTNUMS_CONFIGS = [
             'infilename1': '/mnt/exps/zhang2012/NationalEvents.curves',
             'infilename2': '/mnt/exps/zhang2012/Shenzhou-8 launch successfully.curves',
             'simthreshold': 0.9,
-            'errthreshold': 0.05,
+            'errthreshold': 0.3,
             'm': 180,
             'outfilename': '/mnt/exps/zhang2012/Shenzhou-8 launch successfully.results'
             },
@@ -224,7 +224,7 @@ PREDICT_RTNUMS_CONFIGS = [
             'infilename1': '/mnt/exps/zhang2012/Social.curves',
             'infilename2': '/mnt/exps/zhang2012/Death of Wang Yue.curves',
             'simthreshold': 0.9,
-            'errthreshold': 0.05,
+            'errthreshold': 0.3,
             'm': 180,
             'outfilename': '/mnt/exps/zhang2012/Death of Wang Yue.results'
             },

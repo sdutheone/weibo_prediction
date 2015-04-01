@@ -30,11 +30,6 @@ def zhang2012_calc_curve_sim(curve1, curve2):
     curve1: 转发曲线1
     curve2: 转发曲线2
     '''
-    #s = 0
-    #r = 0.00000001
-    #for point1, point2 in zip(curve1, curve2):
-    #    s += (point1 - point2) ** 2
-    #return 1 / (s + r)
     l = min(len(curve1), len(curve2))
     return pearson_corr(curve1[: l], curve2[: l])
 
@@ -45,7 +40,7 @@ def zhang2012_collect_tweets(infilename, eventtime, unittime, m, n, mid_eventnam
     infilename: 事件微博文件
     eventtime: 事件发生时间，格式'yyyy-mm-dd HH:MM:SS'
     unittime: 单位时间(秒)
-    m: 曲线点数
+    m: 曲线最少点数
     n: 选取转发最多的top n，若n小于等于0，则全选
     outfilename: 结果文件
     '''
@@ -54,7 +49,6 @@ def zhang2012_collect_tweets(infilename, eventtime, unittime, m, n, mid_eventnam
         for line in infile:
             fields = get_fields(line)
             time = fields['time']
-            endtime = time # 保存最后时间
             if 'rtMid' in fields: # 转发微博
                 rtmid = fields['rtMid']
                 rttime = fields['rtTime']
@@ -100,7 +94,7 @@ def zhang2012_write_curves(mid_eventnames, mid_times, mid_rtnums, m, outfilename
     mid_eventnames: 事件名称
     mid_times: 转发时间
     mid_rtnums: 转发数
-    m: 若点数少于m，则进行扩展
+    m: 曲线点数
     outfilename: 结果文件
     '''
     mids = mid_rtnums.keys()
@@ -122,7 +116,7 @@ def zhang2012_write_curves(mid_eventnames, mid_times, mid_rtnums, m, outfilename
             truncated_curve = curve[: m]
             outfile.write('%s\t' % mid)
             outfile.write('%s\t' % mid_eventnames[mid])
-            outfile.write('%s\t' % mid_rtnums[mid])
+            outfile.write('%d\t' % mid_rtnums[mid])
             outfile.write('%d\t' % sum(truncated_curve))
             outfile.write(' '.join([str(_) for _ in truncated_curve]))
             outfile.write('\n')
@@ -151,7 +145,7 @@ def zhang2012_predict_rtnums(infilename1, infilename2, simthreshold, errthreshol
     infilename2: 测试微博的转发曲线
     simthreshold: 相似度阈值
     errthreshold: 误差阈值
-    m: 所用点数
+    m: 预测所用曲线点数
     outfilename: 结果文件
     '''
     mid_topcurves = {}
