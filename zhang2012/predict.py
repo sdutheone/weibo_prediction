@@ -3,100 +3,9 @@
 import datetime
 import os
 from weibo_prediction.utils import *
-from weibo_prediction.zhang2012.config import *
 
 
-def zhang2012_select_top_n_tweets(infilenames, eventtimes, unittime, m, n, outfilename):
-    '''
-    infilenames: 事件微博文件
-    eventtimes: 事件发生时间，格式'yyyy-mm-dd HH:MM:SS'
-    unittime: 单位时间(秒)
-    m: 曲线点数
-    n: 选取数量, n小于等于0则全部选取
-    outfilename: 结果文件
-    '''
-    mid_eventnames = {}
-    mid_times = {}
-    mid_rtnums = {}
-    
-    for infilename, eventtime in zip(infilenames, eventtimes):
-        zhang2012_collect_tweets(infilename, eventtime, unittime, m, n, mid_eventnames, mid_times, mid_rtnums)
-    zhang2012_write_curves(mid_eventnames, mid_times, mid_rtnums, m, outfilename)
-
-
-def zhang2012_calc_curve_sim(curve1, curve2):
-    '''
-    比较两条转发曲线相似度
-    curve1: 转发曲线1
-    curve2: 转发曲线2
-    '''
-    l = min(len(curve1), len(curve2))
-    return pearson_corr(curve1[: l], curve2[: l])
-
-
-def zhang2012_collect_tweets(infilename, eventtime, unittime, m, n, mid_eventnames, mid_times, mid_rtnums):
-    '''
-    统计微博数据
-    infilename: 事件微博文件
-    eventtime: 事件发生时间，格式'yyyy-mm-dd HH:MM:SS'
-    unittime: 单位时间(秒)
-    m: 曲线最少点数
-    n: 选取转发最多的top n，若n小于等于0，则全选
-    outfilename: 结果文件
-    '''
-    # 读入事件相关微博
-    with open(infilename) as infile:
-        for line in infile:
-            fields = get_fields(line)
-            time = fields['time']
-            if 'rtMid' in fields: # 转发微博
-                rtmid = fields['rtMid']
-                rttime = fields['rtTime']
-                if rtmid in mid_rtnums: # 已添加对应的原始微博
-                    mid_times[rtmid].append(time)
-                    mid_rtnums[rtmid] += 1
-                elif rttime >= eventtime: # 未添加对应的原始微博，且原始微博在事件发生后发布
-                    mid_eventnames[rtmid] = infilename.rsplit('/', 1)[-1]
-                    mid_times[rtmid] = [rttime]
-                    mid_rtnums[rtmid] = 1
-            else: # 原始微博
-                mid = fields['mid']
-                if time >= eventtime: # 在事件发生后发布
-                    mid_eventnames[mid] = infilename.rsplit('/', 1)[-1]
-                    mid_times[mid] = [time]
-                    mid_rtnums[mid] = 0
-
-    # 只保留时间跨度超过指定长度的微博
-    lifespan = datetime.timedelta(seconds=unittime*m)
-    mids = mid_rtnums.keys()
-    for mid in mids:
-        rttime = datetime.datetime.strptime(mid_times[mid][0], '%Y-%m-%d %H:%M:%S')
-        time = datetime.datetime.strptime(mid_times[mid][-1], '%Y-%m-%d %H:%M:%S')
-        delta = time - rttime
-        if delta < lifespan:
-            del mid_eventnames[mid]
-            del mid_times[mid]
-            del mid_rtnums[mid]
-
-    # 取top n
-    mids = mid_rtnums.keys()
-    mids.sort(key=lambda mid: mid_rtnums[mid], reverse=True)
-    if n > 0:
-        for mid in mids[n: ]:
-            del mid_eventnames[mid]
-            del mid_times[mid]
-            del mid_rtnums[mid]
-
-
-def zhang2012_write_curves(mid_eventnames, mid_times, mid_rtnums, m, outfilename):
-    '''
-    保存转发曲线
-    mid_eventnames: 事件名称
-    mid_times: 转发时间
-    mid_rtnums: 转发数
-    m: 曲线点数
-    outfilename: 结果文件
-    '''
+def write_curves(outfilename, mid_eventnames, mid_times, mid_rtnums, m, timeunit):
     mids = mid_rtnums.keys()
     mids.sort(key=lambda mid: mid_rtnums[mid], reverse=True)
 
@@ -107,12 +16,10 @@ def zhang2012_write_curves(mid_eventnames, mid_times, mid_rtnums, m, outfilename
             for i in range(len(mid_times[mid]) - 1):
                 time = datetime.datetime.strptime(mid_times[mid][i + 1], '%Y-%m-%d %H:%M:%S')
                 delta = time - rttime
-                utnums = (delta.days * 24 * 3600 + delta.seconds) / unittime + 1
-                while len(curve) < utnums:
+                tunums = (delta.days * 24 * 60 * 60 + delta.seconds) / timeunit + 1
+                while len(curve) < tunums:
                     curve.append(0)
                 curve[-1] += 1
-            #while len(curve) < m: # 点数小于n，扩展
-            #    curve.append(0)
             truncated_curve = curve[: m]
             outfile.write('%s\t' % mid)
             outfile.write('%s\t' % mid_eventnames[mid])
@@ -122,31 +29,87 @@ def zhang2012_write_curves(mid_eventnames, mid_times, mid_rtnums, m, outfilename
             outfile.write('\n')
 
 
-def zhang2012_get_test_curves(infilename, eventtime, unittime, m, outfilename):
-    '''
-    生成测试微博的转发曲线
-    infilename: 测试微博文件
-    eventtime: 事件发生时间，格式'yyyy-mm-dd HH:MM:SS'
-    unittime: 单位时间(秒)
-    m: 曲线点数
-    outfilename: 结果文件
-    '''
+def collect_mids(infilename, outfilename):
     mid_eventnames = {}
     mid_times = {}
     mid_rtnums = {}
-    zhang2012_collect_tweets(infilename, eventtime, unittime, m, 0, mid_eventnames, mid_times, mid_rtnums)
-    zhang2012_write_curves(mid_eventnames, mid_times, mid_rtnums, m, outfilename)
+
+    with open(infilename) as infile: # 读入事件相关微博
+        for line in infile:
+            fields = get_fields(line)
+            time = fields['time']
+            if 'rtMid' in fields: # 转发微博
+                rtmid = fields['rtMid']
+                rttime = fields['rtTime']
+                if rtmid in mid_rtnums: # 已添加对应的原始微博
+                    mid_times[rtmid].append(time)
+                    mid_rtnums[rtmid] += 1
+                else: # 未添加对应的原始微博
+                    mid_eventnames[rtmid] = infilename.rsplit('/', 1)[-1]
+                    mid_times[rtmid] = [rttime, time]
+                    mid_rtnums[rtmid] = 1
+            else: # 原始微博
+                mid = fields['mid']
+                mid_eventnames[mid] = infilename.rsplit('/', 1)[-1]
+                mid_times[mid] = [time]
+                mid_rtnums[mid] = 0
+
+    return mid_eventnames, mid_times, mid_rtnums
 
 
-def zhang2012_predict_rtnums(infilename1, infilename2, simthreshold, errthreshold, m, outfilename):
+def get_top_n_curves_from_event(infilename, outfilename, n, m, timeunit):
+    mid_eventnames, mid_times, mid_rtnums = collect_mids(infilename, outfilename)
+    mids = mid_rtnums.keys() # 取 top n
+    mids.sort(key=lambda mid: mid_rtnums[mid], reverse=True)
+    if n > 0:
+        for mid in mids[n: ]:
+            del mid_eventnames[mid]
+            del mid_times[mid]
+            del mid_rtnums[mid]
+    write_curves(outfilename, mid_eventnames, mid_times, mid_rtnums, m, timeunit)
+
+
+def get_top_n_curves_from_event_group(infilenames, outfilename, n, m, timeunit):
+    mid_eventnames = {}
+    mid_times = {}
+    mid_rtnums = {}
+
+    for infilename in infilenames:
+        mid_eventnames_, mid_times_, mid_rtnums_ = collect_mids(infilename, outfilename)
+        for mid in mid_rtnums_: # 合并
+            mid_eventnames[mid] = mid_eventnames_[mid]
+            mid_times[mid] = mid_times_[mid]
+            mid_rtnums[mid] = mid_rtnums_[mid]
+        mids = mid_rtnums.keys() # 取 top n
+        mids.sort(key=lambda mid: mid_rtnums[mid], reverse=True)
+        if n > 0:
+            for mid in mids[n: ]:
+                del mid_eventnames[mid]
+                del mid_times[mid]
+                del mid_rtnums[mid]
+    
+    write_curves(outfilename, mid_eventnames, mid_times, mid_rtnums, m, timeunit)
+
+
+def calc_curve_sim(curve1, curve2):
+    '''
+    比较两条转发曲线相似度
+    curve1: 转发曲线1
+    curve2: 转发曲线2
+    '''
+    l = min(len(curve1), len(curve2))
+    return pearson_corr(curve1[: l], curve2[: l])
+
+
+def predict_rtnums(infilename1, infilename2, outfilename, simthreshold, errthreshold, m):
     '''
     预测微博转发数
     infilename1: 事件转发曲线
     infilename2: 测试微博的转发曲线
+    outfilename: 结果文件
     simthreshold: 相似度阈值
     errthreshold: 误差阈值
     m: 预测所用曲线点数
-    outfilename: 结果文件
     '''
     mid_topcurves = {}
 
@@ -166,7 +129,7 @@ def zhang2012_predict_rtnums(infilename1, infilename2, simthreshold, errthreshol
                 truncated_testcurve = testcurve[: m]
                 candidates = []
                 for topcurve in mid_topcurves.itervalues():
-                    sim = zhang2012_calc_curve_sim(truncated_testcurve, topcurve)
+                    sim = calc_curve_sim(truncated_testcurve, topcurve)
                     if sim >= simthreshold:
                         candidates.append(topcurve)
                 M1 = 0
@@ -187,15 +150,20 @@ def zhang2012_predict_rtnums(infilename1, infilename2, simthreshold, errthreshol
                     M1 = int(sum(M1s) / float(len(M1s)))
                 else:
                     M1 = sum(truncated_testcurve)
-                if realM1 > 0: # 实际转发数大于0
+                if realM1 >= 100: # 实际转发数大于0
                     error = abs(M1 - realM1) / float(realM1)
-                else:
-                    error = float('inf')
-                correct = 1 if error <= errthreshold else 0
-                outfile.write('%s\t%d\t%d\t%.4f\t%d\n' % (mid, realM1, M1, error, correct))
+                #else:
+                #    ## TODO
+                #    #if M1 == 0:
+                #    #    error = 0
+                #    #else:
+                #    #    error = float('inf')
+                #    error = float('inf')
+                    correct = 1 if error <= errthreshold else 0
+                    outfile.write('%s\t%d\t%d\t%.4f\t%d\n' % (mid, realM1, M1, error, correct))
 
 
-def zhang2012_calc_precision(infilename):
+def calc_precision(infilename):
     '''
     计算准确率
     infilename: 预测结果文件
@@ -211,52 +179,3 @@ def zhang2012_calc_precision(infilename):
             total += 1
 
     return correct, total
-
-
-
-if __name__ == '__main__':
-    #print 'selecting top n tweets...'
-    #for category in SELECT_TOP_N_TWEETS_CONFIGS:
-    #    infilenames = SELECT_TOP_N_TWEETS_CONFIGS[category]['infilenames']
-    #    eventtimes = SELECT_TOP_N_TWEETS_CONFIGS[category]['eventtimes']
-    #    unittime = SELECT_TOP_N_TWEETS_CONFIGS[category]['unittime']
-    #    m = SELECT_TOP_N_TWEETS_CONFIGS[category]['m']
-    #    n = SELECT_TOP_N_TWEETS_CONFIGS[category]['n']
-    #    outfilename = SELECT_TOP_N_TWEETS_CONFIGS[category]['outfilename']
-    #    print 'selecting top n tweets from %s...' % category
-    #    zhang2012_select_top_n_tweets(infilenames, eventtimes, unittime, m, n, outfilename)
-
-    #print 'generating testcurves...'
-    #for config in GET_TEST_CURVES_CONFIGS:
-    #    infilename = config['infilename']
-    #    eventtime = config['eventtime']
-    #    unittime = config['unittime']
-    #    m = config['m']
-    #    outfilename = config['outfilename']
-    #    print 'generating testcurves for %s...' % infilename.rsplit('/', 1)[-1]
-    #    zhang2012_get_test_curves(infilename, eventtime, unittime, m, outfilename)
-
-    print 'predicting rtnums...'
-    for config in PREDICT_RTNUMS_CONFIGS:
-        infilename1 = config['infilename1']
-        infilename2 = config['infilename2']
-        simthreshold = config['simthreshold']
-        errthreshold = config['errthreshold']
-        m = config['m']
-        outfilename = config['outfilename']
-        print 'predicting rtnums for %s...' % infilename2
-        zhang2012_predict_rtnums(infilename1, infilename2, simthreshold, errthreshold, m, outfilename)
-
-    print 'calculating precision...'
-    correct_overall = 0
-    total_overall = 0
-    precisions = {}
-    for infilename in CALC_PRECISION['infilenames']:
-        print 'calculating precision for %s...' % infilename
-        correct, total = zhang2012_calc_precision(infilename)
-        precisions[infilename.rsplit('/', 1)[-1]] = correct, total
-        correct_overall += correct
-        total_overall += total
-    for eventname, (correct, total) in precisions.items():
-        print eventname, correct, total, float(correct) / total
-    print 'overall', correct_overall, total_overall, float(correct_overall) / total_overall
