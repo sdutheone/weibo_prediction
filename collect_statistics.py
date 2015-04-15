@@ -41,13 +41,16 @@ def collect_statistics(infilenames, categories, lifespan):
                     mid2categorie[mid] = category
 
     categories_deduped = set(categories)
+    for category in categories_deduped:
+        category2stat[category]['tnum'] = 0
+        category2stat[category]['rtnum'] = 0
     for mid, rtnum in mid2rtnum.items():
         category = mid2categorie[mid]
         category2stat[category]['tnum'] += 1
-        category2stat[category]['rtnum'] += rtnum
+        category2stat[category]['rtnum'] += 1
 
     category2stat['Overall']['tnum'] = sum([stat['tnum'] for stat in category2stat.values()])
-    category2stat['Overall']['rtnum'] = sum([stat['rtnum'] for stat in category2stat.values()])
+    category2stat['Overall']['rtnum'] = sum([stat['rtnum'] for stat in category2stat.values() if 'rtnum' in stat])
 
     for category, stat in category2stat.items():
         print '%s\t\t\t%d\t\t%d' % (category, stat['tnum'], stat['rtnum'])

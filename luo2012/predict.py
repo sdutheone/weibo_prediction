@@ -244,7 +244,7 @@ def predict_rtnums(infilename, indirname, outfilename, simthreshold, errthreshol
                                 sim_max = sim
                                 candidate = cnvrt_traincurve
                 realM1 = sum(testcurve)
-                if realM1 > 100: # 实际转发数大于0
+                if realM1 >= 100: # 实际转发数大于0
                     if sum(candidate) == 0:
                         M1 = sum(trunc_testcurve)
                         is_valid = 0

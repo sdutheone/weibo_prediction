@@ -327,3 +327,14 @@ zhang2012 = {
         'simthreshold': 0.8,
         'errthreshold': 0.05
         }
+
+
+luo2012 = {
+        'outdirname': '/mnt/exps/luo2012',
+        'timeunit': 60,
+        'm': 2 * 24 * 60,
+        'pm': 2 * 60,
+        's': 10,
+        'simthreshold': 0.8,
+        'errthreshold': 0.05
+        }

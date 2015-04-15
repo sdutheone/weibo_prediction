@@ -3,6 +3,8 @@ import datetime
 import math
 import random
 import sys
+import time
+
 
 def get_fields(line):
     fields = dict()
@@ -11,6 +13,10 @@ def get_fields(line):
         key, value = seg.split(':', 1)
         fields[key] = value
     return fields
+
+
+def currenttime():
+    return time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 
 
 def pearson_corr(xs, ys):
