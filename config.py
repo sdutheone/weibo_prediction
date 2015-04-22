@@ -132,7 +132,7 @@ events = [
            'name': "individual income tax threshold rise up to 3500",
            'category': 'NationalEvents',
            'time': '2011-06-30 00:00:00',
-           'usage': 'Train',
+           'usage': 'Test',
            'path': "/mnt/data2/individual income tax threshold rise up to 3500",
            },
         {
@@ -216,7 +216,7 @@ events = [
            'name': "Shenzhou-8 launch successfully",
            'category': 'NationalEvents',
            'time': '2011-11-01 00:00:00',
-           'usage': 'Test',
+           'usage': 'Train',
            'path': "/mnt/data2/Shenzhou-8 launch successfully",
            },
         {
@@ -318,23 +318,21 @@ events = [
            'path': "/mnt/data2/Zhouqu landslide",
            },]
 
-zhang2012 = {
-        'outdirname': '/mnt/exps/zhang2012',
-        'timeunit': 60,
-        'm': 2 * 24 * 60,
-        'n': 30,
-        'pm': 2 * 60,
-        'simthreshold': 0.8,
-        'errthreshold': 0.05
-        }
+#zhang2012 = {
+#        'outdirname': '/mnt/exps/zhang2012',
+#        'timeunit': 60,
+#        'm': 3 * 24 * 60 * 60 / 60,
+#        'n': 30,
+#        'pm': 60 * 60 / 60,
+#        'simthreshold': 0.0,
+#        }
 
 
 luo2012 = {
         'outdirname': '/mnt/exps/luo2012',
         'timeunit': 60,
-        'm': 2 * 24 * 60,
-        'pm': 2 * 60,
+        'm': 3 * 24 * 60,
+        'pm': 1 * 60,
         's': 10,
         'simthreshold': 0.8,
-        'errthreshold': 0.05
         }

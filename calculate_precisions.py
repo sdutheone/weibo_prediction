@@ -14,7 +14,7 @@ def collect_results(infilename, errthreshold):
     with open(infilename) as infile:
         for line in infile:
             segs = line.strip().split()
-            if float(segs[3]) <= errthreshold:
+            if float(segs[1]) <= errthreshold:
                 correct += 1
             total += 1
 

@@ -47,8 +47,9 @@ if __name__ == '__main__':
 
     xs = range(10)
     ys = range(10)
-    random.shuffle(xs)
-    random.shuffle(ys)
+    ys = [_ / 2.0 for _ in ys]
+    #random.shuffle(xs)
+    #random.shuffle(ys)
     print xs, ys
     print pearson_corr(xs, ys)
     print pearson_corr(range(10), range(10))
